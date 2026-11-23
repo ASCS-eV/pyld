@@ -24,6 +24,7 @@
 
 - Preserved RDF literal lexical forms when converting through RDFLib, including canonical double output, large numeric values, and compound literal handling.
 - Fixed the active context clone dropping the default base direction: `@direction` now survives context layers like `@language`. Fixes [issue #337](https://github.com/digitalbazaar/pyld/issues/337).
+- Fixed `@embed: @never` being ignored for reverse-framed properties because of a misspelled `embedded` framing state key. Fixes [issue #378](https://github.com/digitalbazaar/pyld/issues/378).
 - Fixed `KeyError` when a context sets `@direction: null` and no default base direction is in effect.
 - Fixed `iri_resolver.unresolve()` query/fragment reconstruction while cleaning up the resolver docstring.
 - Invalid IRI base values within lists are now skipped when serializing to RDF. Fixes [toRdf#tli12](https://w3c.github.io/json-ld-api/tests/toRdf-manifest#tli12) and [toRdf#tli14](https://w3c.github.io/json-ld-api/tests/toRdf-manifest#tli14).
@@ -33,6 +34,10 @@
 - Use a helper for generalized N-Quads normalization in the test runner, since rdflib cannot parse blank-node predicates. Fixes [toRdf#te075](https://w3c.github.io/json-ld-api/tests/toRdf-manifest#te075).
 - `jsonld.expand()`, `jsonld.to_rdf()` and the other operations no longer fail with an `OverflowError` for an integer too large for a double. `jsonld.to_rdf()` writes it as `INF` or `-INF`, the infinite `xsd:double` values, or, in `json-ld-1.0` mode and not typed as `xsd:double`, as an exact `xsd:integer`. Inside `@json` literals, `jsonld.to_rdf()` and `jsonld.normalize()` still raise `OverflowError` for such numbers, as RFC 8785 only allows numbers that fit in a double.
 - `jsonld.to_rdf()` writes the `xsd:double` NaN as `NaN`, its XSD canonical form, instead of `NAN`, so `jsonld.normalize()` output changes for documents with such a value.
+- Fixed `iri_resolver.resolve()` to
+  - fix references without a scheme or host against a base IRI with a host and no path (`/x` against `http://example.org` gave `http://example.org//x`) or with a query, and keeps the dot of a first segment such as `.gh`.
+  - treat a reference with a `/`, `?` or `#` before its first `:`, such as `/a:b`, `x/y:z` or `a?b:c`, as a relative IRI and resolves it against the base IRI, as RFC 3986 does. It was returned unresolved, so `jsonld.to_rdf()` dropped it.
+- `iri_resolver.remove_dot_segments()`, and with it `iri_resolver.resolve()`, no longer drops the `/` that a final `.` or `..` segment leaves before a query or fragment (`/a/.?x` gave `/a?x`).
 
 ### Changed
 - **BREAKING**: Developer install, command execution, documentation, and release artifact
